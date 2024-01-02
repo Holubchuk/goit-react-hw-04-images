@@ -1,6 +1,6 @@
 import css from './App.module.css';
 import Notiflix from 'notiflix';
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { requestPhotos } from 'services/api';
 import { STATUSES } from 'services/constants';
@@ -10,87 +10,73 @@ import { Button } from './Button/Button';
 import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
 
-export class App extends Component {
-  state = {
-    photos: [],
-    status: STATUSES.idle,
-    error: null,
-    page: 1,
-    searchValue: '',
-    isOpenModal: false,
-    modalData: null,
-    onLoad: false,
-  };
+export const App = () => {
+  const [photos, setPhotos] = useState([]);
+  const [status, setStatus] = useState(STATUSES.idle);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [searchValue, setSearchValue] = useState('');
+  const [isOpenModal, setIsOpenModal] = useState(false);
+  const [modalData, setModalData] = useState(null);
+  const [onLoad, setOnLoad] = useState(false);
 
-  featchPhotosByQuery = async (searchValue, page) => {
+  const featchPhotosByQuery = async (searchValue, page) => {
     try {
-      this.setState({ status: STATUSES.pending });
+      setStatus(STATUSES.pending);
+      setOnLoad(false);
       const { hits, totalHits } = await requestPhotos(searchValue, page);
-      this.setState(prevState => ({
-        photos: [...prevState.photos, ...hits],
-        status: STATUSES.success,
-        onLoad: this.state.page < Math.ceil(totalHits / 12),
-      }));
+      setPhotos(prevState => [...(prevState || []), ...hits]);
+      setStatus(STATUSES.success);
+      setOnLoad(page < Math.ceil(totalHits / 12));
     } catch (error) {
-      this.setState({ status: STATUSES.error, error: error.message });
+      setStatus(STATUSES.error);
+      setError(error.message);
       Notiflix.Notify.failure(
         'Oops! Something went wrong. Please try again later'
       );
     }
   };
 
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.searchValue !== this.state.searchValue ||
-      prevState.page !== this.state.page
-    ) {
-      this.featchPhotosByQuery(this.state.searchValue, this.state.page);
-    }
-  }
+  useEffect(() => {
+    if (searchValue === '' && page === 1) return;
 
-  handleSubmit = e => {
+    featchPhotosByQuery(searchValue, page);
+  }, [searchValue, page]);
+
+  const handleSubmit = e => {
     e.preventDefault();
 
     const searchValue = e.currentTarget.elements.search.value;
 
-    this.setState({ searchValue: searchValue, page: 1, photos: [] }, () => {
-      e.target.reset();
-    });
+    setSearchValue(searchValue);
+    setPage(1);
+    setPhotos([]);
+    e.target.reset();
   };
 
-  handleLodeMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const handleLodeMore = () => {
+    setPage(prevState => prevState + 1);
   };
 
-  handleOpenModal = photoId => {
-    const selectedPhoto = this.state.photos.find(photo => photo.id === photoId);
-    this.setState({
-      isOpenModal: true,
-      modalData: selectedPhoto,
-    });
+  const handleOpenModal = photoId => {
+    const selectedPhoto = photos.find(photo => photo.id === photoId);
+    setIsOpenModal(true);
+    setModalData(selectedPhoto);
   };
 
-  handleCloseModal = () => {
-    this.setState({ isOpenModal: false });
+  const handleCloseModal = () => {
+    setIsOpenModal(false);
   };
 
-  render() {
-    return (
-      <div className={css.app}>
-        <Searchbar handleSubmit={this.handleSubmit} />
-        <ImageGallery
-          photos={this.state.photos}
-          handleOpenModal={this.handleOpenModal}
-        />
-        {this.state.status === STATUSES.pending && <Loader />}
-        {this.state.onLoad && <Button handleLodeMore={this.handleLodeMore} />}
-        {this.state.isOpenModal && (
-          <Modal
-            modalData={this.state.modalData}
-            handleCloseModal={this.handleCloseModal}
-          />
-        )}
-      </div>
-    );
-  }
-}
+  return (
+    <div className={css.app}>
+      <Searchbar handleSubmit={handleSubmit} />
+      <ImageGallery photos={photos} handleOpenModal={handleOpenModal} />
+      {status === STATUSES.pending && <Loader />}
+      {onLoad && <Button handleLodeMore={handleLodeMore} />}
+      {isOpenModal && (
+        <Modal modalData={modalData} handleCloseModal={handleCloseModal} />
+      )}
+    </div>
+  );
+};
