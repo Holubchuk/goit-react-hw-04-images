@@ -24,7 +24,7 @@ export const Modal = ({ handleCloseModal, modalData }) => {
       document.body.style.overflow = 'auto';
       window.removeEventListener('keydown', handleKeyPress);
     };
-  }, []);
+  }, [handleCloseModal]);
 
   return (
     <div className={css.overlay} onClick={handleOverlayClick}>
