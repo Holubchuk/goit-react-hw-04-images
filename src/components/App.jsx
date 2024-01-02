@@ -13,7 +13,6 @@ import { Modal } from './Modal/Modal';
 export const App = () => {
   const [photos, setPhotos] = useState([]);
   const [status, setStatus] = useState(STATUSES.idle);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [searchValue, setSearchValue] = useState('');
   const [isOpenModal, setIsOpenModal] = useState(false);
@@ -28,9 +27,8 @@ export const App = () => {
       setPhotos(prevState => [...(prevState || []), ...hits]);
       setStatus(STATUSES.success);
       setOnLoad(page < Math.ceil(totalHits / 12));
-    } catch (error) {
+    } catch (e) {
       setStatus(STATUSES.error);
-      setError(error.message);
       Notiflix.Notify.failure(
         'Oops! Something went wrong. Please try again later'
       );
